@@ -1,0 +1,110 @@
+package ru.flare.event.core.processing;
+
+import lombok.extern.slf4j.Slf4j;
+import ru.flare.event.core.acquaring.EventReaderAdapter;
+import ru.flare.event.core.model.AbstractTask;
+
+import javax.annotation.PreDestroy;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+/**
+ * this class are for avoid using threadpool as a timer
+ */
+@Slf4j
+public class Worker extends Thread
+{
+    private boolean isShoutDown = false;
+    private TreeSet<AbstractTask> taskQ;
+    private ReentrantReadWriteLock.ReadLock lock;
+    private EventReaderAdapter eventReaderAdapter;
+
+    @Override
+    public void run() {
+        startListen();
+    }
+
+    private synchronized void startListen() {
+        while (!isShoutDown) {
+            try {
+                lock.lock();
+                Duration duration = Duration.of(1, ChronoUnit.SECONDS);
+                try
+                {
+                    LocalDateTime taskTime = getPollTime();
+                    duration = Duration.between(LocalDateTime.now(), taskTime);
+                    if(duration.isNegative() || duration.isZero()) {
+                        Optional<AbstractTask> task = taskQ.stream().findFirst();
+                        if(task.isPresent()) {
+                            AbstractTask abstractTask = task.get();
+                            abstractTask.getTask().call();
+                            eventReaderAdapter.onEvent(abstractTask::getTaskTime);
+                            taskQ.remove(abstractTask);
+                            taskTime = getPollTime();
+                            duration = Duration.between(LocalDateTime.now(), taskTime);
+                        }
+                    }
+                }
+                finally {
+                    lock.unlock();
+                }
+
+                Thread.currentThread().wait(duration.toMillis());
+            } catch (Exception e) {
+                logger.error("Error in general common thread caused by:", e);
+                Throwable t = e.getCause();
+                while(t != null)
+                {
+                    logger.error("Global error caused by:", t);
+                    t = t.getCause();
+                }
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+
+    @PreDestroy
+    public void shutdown() {
+        isShoutDown = true;
+        interrupt();
+    }
+
+    public Worker(EventReaderAdapter eventReaderAdapter, String name) {
+        super(name + ": " + UUID.randomUUID());
+        this.eventReaderAdapter = eventReaderAdapter;
+    }
+
+    public Worker(EventReaderAdapter eventReaderAdapter) {
+        super("Worker: " + UUID.randomUUID());
+        this.eventReaderAdapter = eventReaderAdapter;
+    }
+
+    public void setTaskQ(TreeSet<AbstractTask> taskQ) {
+        this.taskQ = taskQ;
+    }
+
+    public void setLock(ReentrantReadWriteLock.ReadLock lock) {
+        this.lock = lock;
+    }
+
+    public LocalDateTime getPollTime() {
+        LocalDateTime now = LocalDateTime.now();
+        if(taskQ == null) {
+            return now.plusSeconds(1);
+        }
+        if(taskQ.isEmpty()) {
+            return now.plusSeconds(1);
+        }
+        Optional<AbstractTask> firstTask = taskQ.stream().findFirst();
+        if(firstTask.isPresent()) {
+            return firstTask.get().getTaskTime();
+        }
+        return now.plusSeconds(1);
+    }
+}

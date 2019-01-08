@@ -1,4 +1,4 @@
-package ru.flare.event.core.processing;
+package ru.flare.event.core.acquaring;
 
 import org.junit.Test;
 
