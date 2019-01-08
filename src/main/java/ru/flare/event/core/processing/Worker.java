@@ -3,6 +3,7 @@ package ru.flare.event.core.processing;
 import lombok.extern.slf4j.Slf4j;
 import ru.flare.event.core.acquaring.EventReaderAdapter;
 import ru.flare.event.core.model.AbstractTask;
+import ru.flare.event.core.processing.tasks.TaskResult;
 
 import javax.annotation.PreDestroy;
 import java.time.Duration;
@@ -42,8 +43,15 @@ public class Worker extends Thread
                         Optional<AbstractTask> task = taskQ.stream().findFirst();
                         if(task.isPresent()) {
                             AbstractTask abstractTask = task.get();
-                            abstractTask.getTask().call();
-                            eventReaderAdapter.onEvent(abstractTask::getTaskTime);
+                            TaskResult call = abstractTask.getTask().call();
+                            if(!call.isComplete()) {
+                                logger.error(call.getMessage());
+
+                            }
+                            else {
+                                eventReaderAdapter.onEvent(abstractTask::getTaskTime);
+                            }
+
                             taskQ.remove(abstractTask);
                             taskTime = getPollTime();
                             duration = Duration.between(LocalDateTime.now(), taskTime);
