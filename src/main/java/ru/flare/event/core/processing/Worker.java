@@ -1,9 +1,11 @@
 package ru.flare.event.core.processing;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.flare.event.core.acquaring.EventReaderAdapter;
 import ru.flare.event.core.model.AbstractTask;
 import ru.flare.event.core.processing.tasks.TaskResult;
+import ru.flare.event.core.queue.QueueHolder;
 
 import javax.annotation.PreDestroy;
 import java.time.Duration;
@@ -17,13 +19,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * this class are for avoid using threadpool as a timer
  */
-@Slf4j
 public class Worker extends Thread
 {
     private boolean isShoutDown = false;
     private TreeSet<AbstractTask> taskQ;
     private ReentrantReadWriteLock.ReadLock lock;
     private EventReaderAdapter eventReaderAdapter;
+    private Logger logger = LoggerFactory.getLogger(QueueHolder.class);
 
     @Override
     public void run() {

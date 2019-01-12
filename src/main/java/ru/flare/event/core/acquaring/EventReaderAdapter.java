@@ -1,8 +1,10 @@
 package ru.flare.event.core.acquaring;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import ru.flare.event.core.queue.QueueHolder;
 
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
@@ -14,8 +16,10 @@ import java.util.stream.Collectors;
  * this class mask type difference of Reaction holders from Event producers
  */
 @Component
-@Slf4j
+
 public class EventReaderAdapter {
+
+    private Logger logger = LoggerFactory.getLogger(QueueHolder.class);
 
     List<EventReader<?>> eventReaders;
 

@@ -1,7 +1,6 @@
 package ru.flare.event.core.model;
 
 
-import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -13,10 +12,8 @@ import ru.flare.event.core.acquaring.EventReader;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
 @Component
 public class TasksQueueState implements EventReader<Event> {
-
 
     private LocalDateTime lastTaskTime = LocalDateTime.now();
 
@@ -39,5 +36,22 @@ public class TasksQueueState implements EventReader<Event> {
     @Override
     public Class<Event> getSupportedEventType() {
         return Event.class;
+    }
+
+
+    public LocalDateTime getLastTaskTime() {
+        return lastTaskTime;
+    }
+
+    public void setLastTaskTime(LocalDateTime lastTaskTime) {
+        this.lastTaskTime = lastTaskTime;
+    }
+
+    public TasksDao getTasksDao() {
+        return tasksDao;
+    }
+
+    public void setTasksDao(TasksDao tasksDao) {
+        this.tasksDao = tasksDao;
     }
 }

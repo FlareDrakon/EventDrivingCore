@@ -1,7 +1,8 @@
 package ru.flare.event.core.queue;
 
 import com.sun.istack.internal.NotNull;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import ru.flare.event.core.dao.TasksDao;
@@ -12,10 +13,10 @@ import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @Component
-@Slf4j
 public class QueueHolder {
 
     private final Worker worker;
+    private Logger logger = LoggerFactory.getLogger(QueueHolder.class);
     private TreeSet<AbstractTask> tasksQ = new TreeSet<>(AbstractTask::compareTo);
     //fair for save ordering id dates are same
     private ReentrantReadWriteLock reentrantLock = new ReentrantReadWriteLock(true);
