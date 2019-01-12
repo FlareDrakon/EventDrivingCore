@@ -12,6 +12,8 @@ gradlew build
 ```
 # Getting Started
 use spring component scan on ru.flare.event.core.*
+Implement your configuration for Dao<AbstractTask> Bean
+And then use like that:
 
 ```java
 import ru.flare.event.core.api.IntraceprtorBase;

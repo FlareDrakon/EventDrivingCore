@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.flare.event.core.dao.TasksDao;
+import ru.flare.event.core.dao.Dao;
 import ru.flare.event.core.model.AbstractTask;
 import ru.flare.event.core.acquaring.EventReaderAdapter;
 import ru.flare.event.core.processing.Worker;
@@ -25,11 +25,11 @@ public class QueueHolder {
     private ReentrantReadWriteLock reentrantLock = new ReentrantReadWriteLock(true);
     private ReentrantReadWriteLock.ReadLock readLock = reentrantLock.readLock();
     private ReentrantReadWriteLock.WriteLock writeLock = reentrantLock.writeLock();
-    private TasksDao taskDao;
+    private Dao<AbstractTask> taskDao;
     private EventReaderAdapter eventReaderAdapter;
 
     @Autowired
-    public QueueHolder(TasksDao taskDao, EventReaderAdapter eventReaderAdapter) {
+    public QueueHolder(Dao<AbstractTask> taskDao, EventReaderAdapter eventReaderAdapter) {
         this.taskDao = taskDao;
         this.eventReaderAdapter = eventReaderAdapter;
     }
@@ -61,16 +61,18 @@ public class QueueHolder {
     }
 
     private void constructWorker() {
-        this.worker = new Worker(eventReaderAdapter, monitor);
+        this.worker = new Worker(eventReaderAdapter, monitor, taskDao);
         worker.setTaskQ(tasksQ);
         worker.setLock(readLock);
     }
 
     @PreDestroy
     public void onShutdown() {
-        worker.shutdown();
-        synchronized (monitor) {
-            worker.notify();
+        if(worker != null) {
+            worker.shutdown();
+            synchronized (monitor) {
+                worker.notify();
+            }
         }
     }
 }

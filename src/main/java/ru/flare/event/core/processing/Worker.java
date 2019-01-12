@@ -3,6 +3,7 @@ package ru.flare.event.core.processing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.flare.event.core.acquaring.EventReaderAdapter;
+import ru.flare.event.core.dao.Dao;
 import ru.flare.event.core.model.AbstractTask;
 import ru.flare.event.core.processing.tasks.TaskResult;
 import ru.flare.event.core.queue.QueueHolder;
@@ -23,6 +24,7 @@ public class Worker extends Thread
 {
     private boolean isShoutDown = false;
     private Collection<AbstractTask> taskQ;
+    private Dao<AbstractTask> tasksDao;
     private ReentrantReadWriteLock.ReadLock lock;
     private EventReaderAdapter eventReaderAdapter;
     private Logger logger = LoggerFactory.getLogger(QueueHolder.class);
@@ -57,6 +59,7 @@ public class Worker extends Thread
                             }
 
                             taskQ.remove(abstractTask);
+                            tasksDao.delete(abstractTask);
                             if(taskQ.isEmpty()) {
                                 return;
                             }
@@ -97,16 +100,18 @@ public class Worker extends Thread
         super.finalize();
     }
 
-    public Worker(EventReaderAdapter eventReaderAdapter, String name, Object monitor) {
+    public Worker(EventReaderAdapter eventReaderAdapter, String name, Object monitor, Dao<AbstractTask> abstractTaskDao) {
         super(name + ": " + UUID.randomUUID());
         this.eventReaderAdapter = eventReaderAdapter;
         this.monitor = monitor;
+        this.tasksDao = abstractTaskDao;
     }
 
-    public Worker(EventReaderAdapter eventReaderAdapter, Object monitor) {
+    public Worker(EventReaderAdapter eventReaderAdapter, Object monitor, Dao<AbstractTask> abstractTaskDao) {
         super("Worker: " + UUID.randomUUID());
         this.eventReaderAdapter = eventReaderAdapter;
         this.monitor = monitor;
+        this.tasksDao = abstractTaskDao;
     }
 
     public void setTaskQ(TreeSet<AbstractTask> taskQ) {

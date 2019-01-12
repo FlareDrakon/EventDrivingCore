@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
 public class IntraceprtorBase implements Intraceptor {
 
 
-    private static class SimpleTask implements AbstractTask {
+    public static class SimpleTask implements AbstractTask {
         private LocalDateTime localDateTime;
         private Callable<?> subject;
 
