@@ -26,13 +26,15 @@ public class Worker extends Thread
     private ReentrantReadWriteLock.ReadLock lock;
     private EventReaderAdapter eventReaderAdapter;
     private Logger logger = LoggerFactory.getLogger(QueueHolder.class);
+    private final Object monitor;
 
     @Override
     public void run() {
         startListen();
     }
 
-    private synchronized void startListen() {
+    private void startListen() {
+
         while (!isShoutDown) {
             try {
                 lock.lock();
@@ -55,6 +57,9 @@ public class Worker extends Thread
                             }
 
                             taskQ.remove(abstractTask);
+                            if(taskQ.isEmpty()) {
+                                return;
+                            }
                             taskTime = getPollTime();
                             duration = Duration.between(LocalDateTime.now(), taskTime);
                         }
@@ -64,7 +69,10 @@ public class Worker extends Thread
                     lock.unlock();
                 }
 
-                Thread.currentThread().wait(duration.toMillis());
+                synchronized (monitor) {
+                    Thread.currentThread().wait(duration.toMillis());
+                }
+
             } catch (Exception e) {
                 logger.error("Error in general common thread caused by:", e);
                 Throwable t = e.getCause();
@@ -89,14 +97,16 @@ public class Worker extends Thread
         super.finalize();
     }
 
-    public Worker(EventReaderAdapter eventReaderAdapter, String name) {
+    public Worker(EventReaderAdapter eventReaderAdapter, String name, Object monitor) {
         super(name + ": " + UUID.randomUUID());
         this.eventReaderAdapter = eventReaderAdapter;
+        this.monitor = monitor;
     }
 
-    public Worker(EventReaderAdapter eventReaderAdapter) {
+    public Worker(EventReaderAdapter eventReaderAdapter, Object monitor) {
         super("Worker: " + UUID.randomUUID());
         this.eventReaderAdapter = eventReaderAdapter;
+        this.monitor = monitor;
     }
 
     public void setTaskQ(TreeSet<AbstractTask> taskQ) {

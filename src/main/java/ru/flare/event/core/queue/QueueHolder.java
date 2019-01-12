@@ -17,7 +17,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Component
 public class QueueHolder {
 
-    private final Worker worker;
+    private Worker worker;
+    private final Object monitor = new Object();
     private Logger logger = LoggerFactory.getLogger(QueueHolder.class);
     private TreeSet<AbstractTask> tasksQ = new TreeSet<>(AbstractTask::compareTo);
     //fair for save ordering id dates are same
@@ -25,14 +26,12 @@ public class QueueHolder {
     private ReentrantReadWriteLock.ReadLock readLock = reentrantLock.readLock();
     private ReentrantReadWriteLock.WriteLock writeLock = reentrantLock.writeLock();
     private TasksDao taskDao;
+    private EventReaderAdapter eventReaderAdapter;
 
     @Autowired
     public QueueHolder(TasksDao taskDao, EventReaderAdapter eventReaderAdapter) {
         this.taskDao = taskDao;
-        this.worker = new Worker(eventReaderAdapter);
-        //avoid cross inject
-        worker.setTaskQ(tasksQ);
-        worker.setLock(readLock);
+        this.eventReaderAdapter = eventReaderAdapter;
     }
 
     public void onTask(@NotNull AbstractTask abstractTask) {
@@ -43,23 +42,34 @@ public class QueueHolder {
                 logger.error("task has no time {}", abstractTask);
                 return;
             }
+            if(this.worker == null || !this.worker.isAlive()) {
+                constructWorker();
+            }
 
             tasksQ.add(abstractTask);
             taskDao.save(abstractTask);
-            synchronized (worker) {
-                worker.notify();
-            }
-
+            worker.run();
         }
         finally {
             writeLock.unlock();
         }
+
+        synchronized (monitor) {
+            worker.notify();
+        }
+
+    }
+
+    private void constructWorker() {
+        this.worker = new Worker(eventReaderAdapter, monitor);
+        worker.setTaskQ(tasksQ);
+        worker.setLock(readLock);
     }
 
     @PreDestroy
     public void onShutdown() {
         worker.shutdown();
-        synchronized (worker) {
+        synchronized (monitor) {
             worker.notify();
         }
     }
