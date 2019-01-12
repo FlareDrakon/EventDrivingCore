@@ -60,7 +60,11 @@ public class IntraceprtorBase implements Intraceptor {
 
         @Override
         public int compareTo(@NotNull AbstractTask o) {
-            return o.getTaskTime().compareTo(getTaskTime());
+            int compareResult = o.getTaskTime().compareTo(getTaskTime());
+            if(compareResult == 0) {
+                compareResult = -1;
+            }
+            return compareResult;
         }
     }
 
