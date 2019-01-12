@@ -7,10 +7,10 @@ import ru.flare.event.core.model.AbstractTask;
 import ru.flare.event.core.processing.tasks.TaskResult;
 import ru.flare.event.core.queue.QueueHolder;
 
-import javax.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -22,7 +22,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class Worker extends Thread
 {
     private boolean isShoutDown = false;
-    private TreeSet<AbstractTask> taskQ;
+    private Collection<AbstractTask> taskQ;
     private ReentrantReadWriteLock.ReadLock lock;
     private EventReaderAdapter eventReaderAdapter;
     private Logger logger = LoggerFactory.getLogger(QueueHolder.class);
@@ -73,16 +73,20 @@ public class Worker extends Thread
                     logger.error("Global error caused by:", t);
                     t = t.getCause();
                 }
-                Thread.currentThread().interrupt();
+                //avoid circle of Interrupt exeptions
+                if(!Thread.currentThread().isInterrupted()) {
+                    Thread.currentThread().interrupt();
+                }
+
             }
         }
     }
 
-
-    @PreDestroy
-    public void shutdown() {
+    @Override
+    protected void finalize() throws Throwable {
+        //for make sure we stop listen if no more references on that class
         isShoutDown = true;
-        interrupt();
+        super.finalize();
     }
 
     public Worker(EventReaderAdapter eventReaderAdapter, String name) {
@@ -116,5 +120,9 @@ public class Worker extends Thread
             return firstTask.get().getTaskTime();
         }
         return now.plusSeconds(1);
+    }
+
+    public void shutdown() {
+        isShoutDown = true;
     }
 }

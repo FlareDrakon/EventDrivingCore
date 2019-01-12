@@ -9,6 +9,8 @@ import ru.flare.event.core.dao.TasksDao;
 import ru.flare.event.core.model.AbstractTask;
 import ru.flare.event.core.acquaring.EventReaderAdapter;
 import ru.flare.event.core.processing.Worker;
+
+import javax.annotation.PreDestroy;
 import java.util.TreeSet;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -51,6 +53,14 @@ public class QueueHolder {
         }
         finally {
             writeLock.unlock();
+        }
+    }
+
+    @PreDestroy
+    public void onShutdown() {
+        worker.shutdown();
+        synchronized (worker) {
+            worker.notify();
         }
     }
 }
