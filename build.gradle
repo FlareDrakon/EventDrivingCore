@@ -21,8 +21,6 @@ dependencies {
         exclude(module: "slf4j-api")
     }
     compile group: 'org.springframework', name: 'spring-context', version: '5.1.2.RELEASE'
-    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-parent', version: '2.1.0.RELEASE', ext: 'pom'
-    testCompile group: 'org.springframework.boot', name: 'spring-boot-autoconfigure', version: '2.1.0.RELEASE'
 
     compile group: 'org.slf4j', name: 'jcl-over-slf4j', version: '1.7.25'
     testCompile(group: 'org.mockito', name: 'mockito-all', version: "1.10.19")

@@ -3,6 +3,7 @@ package ru.flare.event.core.api;
 import com.sun.istack.internal.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.comparator.Comparators;
 import ru.flare.event.core.model.AbstractTask;
 import ru.flare.event.core.processing.tasks.TaskResult;
 import ru.flare.event.core.queue.QueueHolder;
@@ -22,7 +23,7 @@ public class IntraceprtorBase implements Intraceptor {
         private LocalDateTime localDateTime;
         private Callable<?> subject;
 
-        private SimpleTask(LocalDateTime localDateTime, Callable<?> subject) {
+        public SimpleTask(LocalDateTime localDateTime, Callable<?> subject) {
             this.localDateTime = localDateTime;
             this.subject = subject;
         }
@@ -60,9 +61,9 @@ public class IntraceprtorBase implements Intraceptor {
 
         @Override
         public int compareTo(@NotNull AbstractTask o) {
-            int compareResult = o.getTaskTime().compareTo(getTaskTime());
+            int compareResult = getTaskTime().compareTo(o.getTaskTime());
             if(compareResult == 0) {
-                compareResult = -1;
+                compareResult = 1;
             }
             return compareResult;
         }

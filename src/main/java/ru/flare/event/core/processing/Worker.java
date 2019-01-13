@@ -11,10 +11,7 @@ import ru.flare.event.core.queue.QueueHolder;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
-import java.util.Optional;
-import java.util.TreeSet;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -23,7 +20,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class Worker extends Thread
 {
     private boolean isShoutDown = false;
-    private Collection<AbstractTask> taskQ;
+    private Queue<AbstractTask> taskQ;
     private Dao<AbstractTask> tasksDao;
     private ReentrantReadWriteLock.ReadLock lock;
     private EventReaderAdapter eventReaderAdapter;
@@ -43,10 +40,14 @@ public class Worker extends Thread
                 Duration duration = Duration.of(1, ChronoUnit.SECONDS);
                 try
                 {
+                    if(taskQ == null || taskQ.isEmpty()) {
+                        return;
+                    }
                     LocalDateTime taskTime = getPollTime();
+
                     duration = Duration.between(LocalDateTime.now(), taskTime);
                     if(duration.isNegative() || duration.isZero()) {
-                        Optional<AbstractTask> task = taskQ.stream().findFirst();
+                        Optional<AbstractTask> task = Optional.ofNullable(taskQ.peek());
                         if(task.isPresent()) {
                             AbstractTask abstractTask = task.get();
                             TaskResult call = abstractTask.getTask().call();
@@ -58,7 +59,7 @@ public class Worker extends Thread
                                 eventReaderAdapter.onEvent(abstractTask::getTaskTime);
                             }
 
-                            taskQ.remove(abstractTask);
+                            taskQ.remove();
                             tasksDao.delete(abstractTask);
                             if(taskQ.isEmpty()) {
                                 return;
@@ -73,7 +74,7 @@ public class Worker extends Thread
                 }
 
                 synchronized (monitor) {
-                    Thread.currentThread().wait(duration.toMillis());
+                    monitor.wait(duration.toMillis());
                 }
 
             } catch (Exception e) {
@@ -114,7 +115,7 @@ public class Worker extends Thread
         this.tasksDao = abstractTaskDao;
     }
 
-    public void setTaskQ(TreeSet<AbstractTask> taskQ) {
+    public void setTaskQ(Queue<AbstractTask> taskQ) {
         this.taskQ = taskQ;
     }
 
@@ -123,18 +124,11 @@ public class Worker extends Thread
     }
 
     public LocalDateTime getPollTime() {
-        LocalDateTime now = LocalDateTime.now();
-        if(taskQ == null) {
-            return now.plusSeconds(1);
+        AbstractTask firstTask = taskQ.peek();
+        if(firstTask != null) {
+            return firstTask.getTaskTime();
         }
-        if(taskQ.isEmpty()) {
-            return now.plusSeconds(1);
-        }
-        Optional<AbstractTask> firstTask = taskQ.stream().findFirst();
-        if(firstTask.isPresent()) {
-            return firstTask.get().getTaskTime();
-        }
-        return now.plusSeconds(1);
+        return null;
     }
 
     public void shutdown() {
