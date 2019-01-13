@@ -1,0 +1,56 @@
+apply plugin: "java"
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+ext {
+    logbackVersion = "1.2.3"
+    junit_version = '4.12'
+}
+
+
+repositories {
+    mavenCentral()
+}
+dependencies {
+    compile(group: "ch.qos.logback", name: "logback-classic", version: logbackVersion) {
+        exclude(module: "slf4j-api")
+    }
+
+    compile(group: "ch.qos.logback", name: "logback-core", version: logbackVersion) {
+        exclude(module: "slf4j-api")
+    }
+    compile group: 'org.springframework', name: 'spring-context', version: '5.1.2.RELEASE'
+
+    compile group: 'org.slf4j', name: 'jcl-over-slf4j', version: '1.7.25'
+    testCompile(group: 'org.mockito', name: 'mockito-all', version: "1.10.19")
+    testCompile(group: 'junit', name: 'junit', version: "${junit_version}")
+    testCompile group: 'org.springframework', name: 'spring-test', version: '5.1.2.RELEASE'
+    testRuntime group: 'com.h2database', name: 'h2', version: '1.4.197'
+}
+
+def buildDir  = 'target'
+
+    sourceSets {
+
+        main {
+            output.classesDir = "${buildDir}/classes"
+            output.resourcesDir = "${buildDir}/resources"
+            java {
+                srcDir "src"
+            }
+            resources {
+                srcDir "resources"
+            }
+        }
+        test {
+            output.classesDir = "${buildDir}/test/classes"
+            output.resourcesDir = "${buildDir}/test/resources"
+            java {
+                srcDir "tests"
+            }
+            resources {
+                srcDir "tests/resources"
+            }
+        }
+    }
